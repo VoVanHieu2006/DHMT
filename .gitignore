@@ -1,0 +1,12 @@
+build/
+.vscode/
+*.exe
+*.o
+*.obj
+*.dll
+*.a
+*.lib
+*.pdb
+*.ilk
+*.log
+.DS_Store
