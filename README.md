@@ -1,92 +1,109 @@
-## 1. Cài công cụ cần thiết
+# PhongLighting
 
-Cài MSYS2 trước. MSYS2 là môi trường build native Windows và dùng pacman để cài thư viện C/C++ rất tiện. pacman -S <tên-gói> là cách cài package chính thức của MSYS2.
+Demo Phong / Blinn-Phong Lighting bằng OpenGL 3.3 Core Profile. Project mô phỏng ánh sáng thời gian thực với cube, sphere, floor và lamp object, có Shadow Mapping cơ bản để tạo bóng đổ lên mặt phẳng.
 
-Mở app:
+Người dùng có thể thay đổi vị trí nguồn sáng, vị trí camera, shininess, chế độ Phong/Blinn-Phong, các thành phần ambient/diffuse/specular, attenuation và Shadow Mapping.
 
-MSYS2 UCRT64
+## 1. Cài đặt MSYS2 UCRT64
 
-Chạy lần lượt:
+Cài MSYS2, mở terminal **MSYS2 UCRT64**, rồi cập nhật hệ thống:
 
 ```bash
 pacman -Syu
 ```
 
-Nếu nó yêu cầu đóng terminal thì đóng, mở lại MSYS2 UCRT64, rồi chạy tiếp:
+Nếu MSYS2 yêu cầu đóng terminal, hãy đóng và mở lại **MSYS2 UCRT64**, sau đó cài công cụ build và thư viện:
 
 ```bash
 pacman -S --needed mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-glfw mingw-w64-ucrt-x86_64-glew mingw-w64-ucrt-x86_64-glm
 ```
 
-Các thư viện dùng trong project:
+Project dùng:
 
-GLFW: tạo cửa sổ OpenGL, nhận input bàn phím.
-GLEW: nạp các hàm OpenGL hiện đại.
-GLM: tính toán vector, ma trận.
-CMake + Ninja: build project.
+- GLFW: tạo cửa sổ, OpenGL context và xử lý input.
+- GLEW: nạp các hàm OpenGL hiện đại.
+- GLM: tính toán vector và ma trận.
+- CMake + Ninja: cấu hình và build project.
 
-GLFW là thư viện tạo window/context cho OpenGL, còn GLEW là extension loader; khi dùng GLEW thì cần include glew.h trước các header OpenGL/GLFW liên quan.
+## 2. Build
 
-
-## 2. Clone project từ GitHub
-
-Mở MSYS2 UCRT64, chuyển đến thư mục muốn lưu project, ví dụ Desktop:
-
-```bash
-cd /c/Users/Acer/Desktop
-```
-
-Clone project:
-
-```bash
-git clone https://github.com/VoVanHieu2006/DHMT.git
-```
-
-Đi vào thư mục project:
-
-```bash
-cd DHMT
-```
-
-## 3. Build project
-
-Chạy lệnh cấu hình CMake:
+Trong thư mục project:
 
 ```bash
 cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug
-```
-
-Sau đó build:
-
-```bash
 cmake --build build
 ```
 
-Nếu build thành công, file chạy sẽ nằm trong thư mục:
+File chạy sau khi build:
 
+```bash
 build/PhongLighting.exe
+```
 
-## 4. Chạy chương trình
+CMake sẽ copy toàn bộ thư mục `shaders/` vào thư mục chứa file `.exe`.
 
-Trong terminal MSYS2 UCRT64, chạy:
+## 3. Run
+
+Chạy trong MSYS2 UCRT64:
 
 ```bash
 ./build/PhongLighting.exe
 ```
 
-Nếu chương trình chạy đúng, một cửa sổ OpenGL sẽ xuất hiện. Trong cửa sổ đó, vật thể 3D sẽ được chiếu sáng bằng mô hình Phong hoặc Blinn-Phong
+## 4. Controls
 
+- ESC: thoát.
+- Arrow keys: di chuyển light theo X/Y.
+- Z/X: di chuyển light theo Z.
+- W/S: di chuyển camera gần/xa.
+- Q/E: giảm/tăng shininess.
+- P: Phong.
+- B: Blinn-Phong.
+- 1: Ambient only.
+- 2: Diffuse only.
+- 3: Specular only.
+- 4: Full lighting.
+- O: bật/tắt Shadow Mapping.
+- A: bật/tắt attenuation.
+- T: bật/tắt auto-orbit light.
+- R: reset scene.
 
-## 5 Controls
+Tiêu đề cửa sổ hiển thị mode hiện tại: Phong/Blinn-Phong, shininess, lighting mode, Shadow ON/OFF, Attenuation ON/OFF và Orbit ON/OFF.
 
-- ESC: Exit
-- Arrow keys: Move light on X/Y axes
-- Z / X: Move light on Z axis
-- Q / E: Decrease / increase shininess
-- P: Phong mode
-- B: Blinn-Phong mode
-- 1: Ambient only
-- 2: Ambient + Diffuse
-- 3: Ambient + Diffuse + Specular
-- 4: Full lighting
-- W / S: Move camera forward / backward
+## 5. Nội dung demo
+
+- Floor lớn ở `y = -1.0`, nhận bóng đổ khi bật Shadow Mapping.
+- Cube màu cam ở bên trái.
+- Sphere màu teal ở bên phải.
+- Lamp cube nhỏ biểu diễn vị trí point light.
+- Toggle Phong / Blinn-Phong:
+  - Phong dùng `reflectDir` và `dot(viewDir, reflectDir)`.
+  - Blinn-Phong dùng `halfwayDir` và `dot(norm, halfwayDir)`.
+- Lighting modes:
+  - `1`: chỉ ambient.
+  - `2`: chỉ diffuse.
+  - `3`: chỉ specular.
+  - `4`: ambient + diffuse + specular.
+- Shadow Mapping:
+  - Render depth map từ góc nhìn nguồn sáng.
+  - Dùng `lightSpaceMatrix`.
+  - Có bias giảm shadow acne.
+  - Có PCF 3x3 để bóng bớt răng cưa.
+- Attenuation:
+  - `1.0 / (constant + linear * d + quadratic * d * d)`
+  - `constant = 1.0`
+  - `linear = 0.09`
+  - `quadratic = 0.032`
+
+## 6. Gợi ý chụp ảnh báo cáo
+
+- Full lighting.
+- Ambient only.
+- Diffuse only.
+- Specular only.
+- Phong.
+- Blinn-Phong.
+- Shadow OFF.
+- Shadow ON.
+- Shininess thấp.
+- Shininess cao.
