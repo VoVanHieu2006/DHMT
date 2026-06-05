@@ -50,6 +50,7 @@ Panel bên phải được vẽ trực tiếp bằng OpenGL:
 - Sidebar responsive theo công thức `clamp(framebufferWidth * 0.26, 420, 560)`.
 - Mouse hit-test được quy đổi đúng theo framebuffer để tránh lệch click khi resize/DPI scaling.
 - Nếu panel dài hơn chiều cao cửa sổ, đưa chuột vào sidebar và cuộn mouse wheel.
+- Text trong sidebar đã được tăng scale: header, section title, label, slider value và material name đều lớn hơn để dễ đọc.
 
 Không dùng web UI, localhost, HTML/CSS/JS hoặc ImGui.
 
@@ -70,6 +71,12 @@ Không dùng web UI, localhost, HTML/CSS/JS hoặc ImGui.
 - I: bật/tắt AI-GI Lite.
 - T: bật/tắt Auto Orbit Light.
 - M: đổi material preset.
+- C: chọn Cube.
+- H: chọn Sphere. Dùng `H` vì `S` đã dùng cho camera backward.
+- Y: chọn Pyramid.
+- = hoặc keypad +: thêm object theo type đang chọn.
+- Delete: xóa object đang chọn.
+- N: random màu object đang chọn.
 - R: reset scene.
 - Q/E: giảm/tăng shininess.
 - [/]: giảm/tăng shadowStrength.
@@ -86,6 +93,7 @@ Không dùng web UI, localhost, HTML/CSS/JS hoặc ImGui.
 - Right wall màu xanh, khít với back wall.
 - Back wall màu xám tối.
 - Ceiling màu tối hơn, khép góc trên của phòng.
+- Side walls được rút ngắn chiều sâu về phía camera để back wall và bố cục trung tâm thoáng hơn, nhưng vẫn giữ góc sau khít với room.
 - Cube bên trái.
 - Sphere bên phải.
 - Lamp cube màu vàng nhạt.
@@ -102,7 +110,21 @@ Khi bật GI, vùng tối sáng hơn nhẹ và có color bleeding từ tường 
 
 Nhấn `M` hoặc nút `NEXT MATERIAL` trên UI để đổi preset.
 
-## 9. AI-GI Lite
+## 9. Object Selection
+
+Sidebar có section `OBJECT SELECTION`:
+
+- Chọn mode `SINGLE` hoặc `MULTIPLE`.
+- Button type dùng dạng cycle: `Cube -> Sphere -> Pyramid`.
+- `+` hoặc `ADD`: thêm object theo type đang chọn.
+- `RANDOM`: đổi màu object đang chọn.
+- `REMOVE`: xóa object đang chọn.
+- `CLEAR`: tạo lại scene mặc định gồm Cube, Sphere, Pyramid.
+- Danh sách object cho phép chọn object hiện tại và bật/tắt visible.
+
+Mặc định app mở ở Multiple mode với 3 object: Cube màu cam, Sphere màu teal và Pyramid màu vàng.
+
+## 10. AI-GI Lite
 
 AI-GI Lite là một Neural Indirect Lighting Approximation nhỏ:
 
@@ -122,7 +144,7 @@ python ai/export_glsl_weights.py
 
 Runtime C++ không cần Python. Xem thêm `ai/README_AI.md`.
 
-## 10. Gợi ý ảnh báo cáo
+## 11. Gợi ý ảnh báo cáo
 
 - Phong + Shadow.
 - Blinn-Phong + Shadow.
@@ -137,7 +159,7 @@ Runtime C++ không cần Python. Xem thêm `ai/README_AI.md`.
 - UI panel tổng thể.
 - Material Plastic/Rubber/Metal-like/Ceramic.
 
-## 11. Ghi chú kỹ thuật
+## 12. Ghi chú kỹ thuật
 
 - PBR thật trong project: Cook-Torrance BRDF trực tiếp trong `phong.frag`.
 - GI approximation: công thức heuristic trong shader, không phải path tracing/radiosity.

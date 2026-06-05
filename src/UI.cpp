@@ -57,6 +57,7 @@ GlyphRows glyphRows(char c) {
         case '.': return {0, 0, 0, 0, 0, 12, 12};
         case ':': return {0, 12, 12, 0, 12, 12, 0};
         case '-': return {0, 0, 0, 14, 0, 0, 0};
+        case '+': return {0, 4, 4, 31, 4, 4, 0};
         case '/': return {1, 1, 2, 4, 8, 16, 16};
         case ' ': return {0, 0, 0, 0, 0, 0, 0};
         default: return {0, 0, 14, 4, 4, 0, 4};
@@ -132,7 +133,7 @@ bool UI::button(float x, float y, float w, float h, const std::string& label, bo
     if (!active) {
         rect(x, y, w, 1.0f, glm::vec4(0.18f, 0.27f, 0.30f, 1.0f));
     }
-    float scale = 1.85f;
+    float scale = 2.15f;
     float textW = static_cast<float>(label.size()) * 6.0f * scale;
     text(x + (w - textW) * 0.5f, y + (h - 7.0f * scale) * 0.5f, label,
          active ? glm::vec4(0.01f, 0.04f, 0.05f, 1.0f) : TEXT, scale);
@@ -147,7 +148,7 @@ bool UI::checkbox(float x, float y, const std::string& label, bool checked) {
     } else {
         rect(x + 3.0f, y + 5.0f, 14.0f, 14.0f, glm::vec4(0.025f, 0.055f, 0.080f, 1.0f));
     }
-    text(x + 32.0f, y + 3.0f, label, inside ? TEXT : MUTED, 1.75f);
+    text(x + 34.0f, y + 1.0f, label, inside ? TEXT : MUTED, 2.05f);
     return inside && mousePressed;
 }
 
@@ -155,9 +156,9 @@ bool UI::slider(float x, float y, float w, const std::string& label, float& valu
     std::ostringstream valueText;
     valueText.precision(2);
     valueText << std::fixed << value;
-    text(x, y, label, MUTED, 1.45f);
-    text(x + w - 50.0f, y, valueText.str(), TEXT, 1.35f);
-    float trackY = y + 24.0f;
+    text(x, y, label, MUTED, 1.72f);
+    text(x + w - 58.0f, y, valueText.str(), TEXT, 1.62f);
+    float trackY = y + 29.0f;
     rect(x, trackY, w, 5.0f, CONTROL);
     float t = (value - minValue) / (maxValue - minValue);
     t = std::clamp(t, 0.0f, 1.0f);
