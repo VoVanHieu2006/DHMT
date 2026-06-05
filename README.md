@@ -85,4 +85,8 @@ Nếu chương trình chạy đúng, một cửa sổ OpenGL sẽ xuất hiện.
 - Q / E: Decrease / increase shininess
 - P: Phong mode
 - B: Blinn-Phong mode
+- 1: Ambient only
+- 2: Ambient + Diffuse
+- 3: Ambient + Diffuse + Specular
+- 4: Full lighting
 - W / S: Move camera forward / backward

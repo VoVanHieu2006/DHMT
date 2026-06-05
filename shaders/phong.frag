@@ -12,6 +12,7 @@ uniform vec3 viewPos;
 
 uniform float shininess;
 uniform bool useBlinn;
+uniform int lightingMode;
 
 void main()
 {
@@ -42,6 +43,17 @@ void main()
 
     vec3 specular = specularStrength * spec * lightColor;
 
-    vec3 result = (ambient + diffuse + specular) * objectColor;
+    vec3 lighting;
+    if (lightingMode == 1) {
+        lighting = ambient;
+    } else if (lightingMode == 2) {
+        lighting = ambient + diffuse;
+    } else if (lightingMode == 3) {
+        lighting = ambient + diffuse + specular;
+    } else {
+        lighting = ambient + diffuse + specular;
+    }
+
+    vec3 result = lighting * objectColor;
     FragColor = vec4(result, 1.0);
 }
