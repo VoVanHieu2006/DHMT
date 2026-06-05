@@ -1,166 +1,146 @@
 # PhongLighting
 
-Demo mô phỏng ánh sáng và đổ bóng bằng OpenGL 3.3 Core Profile. Project hỗ trợ Phong, Blinn-Phong, Shadow Mapping, attenuation, auto-orbit light, material presets và AI-GI Lite để minh họa ánh sáng gián tiếp bằng AI ở mức giáo dục.
+Project mô phỏng ánh sáng và đổ bóng bằng OpenGL 3.3 Core Profile. Chương trình hỗ trợ Phong, Blinn-Phong, PBR Cook-Torrance cơ bản, Shadow Mapping, Global Illumination Approximation, AI-GI Lite, material presets và bảng điều khiển native OpenGL bên phải cửa sổ.
 
-Phần PBR và Global Illumination đầy đủ được dùng ở mức lý thuyết, báo cáo và hướng phát triển. Neural Rendering được tích hợp nhẹ qua AI-GI Lite: Python train offline, export sang GLSL, runtime C++ vẫn chỉ dùng OpenGL/GLFW/GLEW/GLM.
+Runtime C++ chỉ dùng OpenGL, GLFW, GLEW, GLM, CMake và Ninja. Module AI dùng Python để train offline và export sang GLSL; không nhúng PyTorch hay ONNX Runtime vào C++.
 
 ## 1. Cài đặt MSYS2 UCRT64
-
-Mở terminal **MSYS2 UCRT64** và cập nhật hệ thống:
 
 ```bash
 pacman -Syu
 ```
 
-Nếu MSYS2 yêu cầu đóng terminal, hãy đóng và mở lại **MSYS2 UCRT64**, sau đó cài toolchain và thư viện:
+Mở lại terminal MSYS2 UCRT64 nếu được yêu cầu, rồi chạy:
 
 ```bash
 pacman -S --needed mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-glfw mingw-w64-ucrt-x86_64-glew mingw-w64-ucrt-x86_64-glm
 ```
 
-Project dùng:
-
-- GLFW: tạo cửa sổ, OpenGL context và xử lý input.
-- GLEW: nạp các hàm OpenGL hiện đại.
-- GLM: tính toán vector và ma trận.
-- CMake + Ninja: cấu hình và build project.
-
 ## 2. Build
-
-Trong thư mục project:
 
 ```bash
 cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
 ```
 
-CMake build executable `PhongLighting` và copy toàn bộ thư mục `shaders/` vào thư mục chứa file `.exe`.
-
 ## 3. Run
-
-Chạy trong MSYS2 UCRT64:
 
 ```bash
 ./build/PhongLighting.exe
 ```
 
-## 4. Controls
+Cửa sổ mặc định là `1600x900`. Nếu màn hình nhỏ hơn, app dùng khoảng 90% kích thước monitor. Scene nằm bên trái, panel điều khiển nằm cố định bên phải.
+
+## 4. Render Modes
+
+- Phong: ambient + diffuse + specular, specular dùng reflect vector.
+- Blinn-Phong: ambient + diffuse + specular, specular dùng halfway vector.
+- PBR: Cook-Torrance BRDF cơ bản với `metallic`, `roughness`, `ao`, direct point light, attenuation và shadow.
+
+Shadow chỉ giảm direct light. Ambient, GI approximation và AI-GI indirect vẫn còn để vùng tối không bị đen tuyệt đối.
+
+## 5. Native OpenGL UI
+
+Panel bên phải được vẽ trực tiếp bằng OpenGL:
+
+- Buttons: Phong, Blinn, PBR, material preset, reset.
+- Checkboxes: Ambient, Diffuse, Specular, Shadow, GI, AI-GI, Orbit, Attenuation.
+- Sliders: Shadow Strength, GI Strength, Color Bleed, Bounce Light, Metallic, Roughness, AO, AI Strength, Light Intensity.
+- Sidebar rộng tối thiểu 420px, hoặc khoảng 28% chiều rộng cửa sổ khi cửa sổ lớn.
+- Sidebar responsive theo công thức `clamp(framebufferWidth * 0.26, 420, 560)`.
+- Mouse hit-test được quy đổi đúng theo framebuffer để tránh lệch click khi resize/DPI scaling.
+- Nếu panel dài hơn chiều cao cửa sổ, đưa chuột vào sidebar và cuộn mouse wheel.
+
+Không dùng web UI, localhost, HTML/CSS/JS hoặc ImGui.
+
+## 6. Controls
 
 - ESC: thoát.
-- Arrow keys: di chuyển nguồn sáng theo X/Y.
-- Z/X: di chuyển nguồn sáng theo Z.
-- W/S: di chuyển camera gần/xa.
-- Q/E: giảm/tăng shininess.
+- F11: bật/tắt fullscreen, thoát fullscreen quay lại windowed mode `1600x900`.
 - P: Phong.
 - B: Blinn-Phong.
+- V: PBR.
 - 1: Ambient only.
 - 2: Diffuse only.
 - 3: Specular only.
 - 4: Full lighting.
 - O: bật/tắt Shadow Mapping.
 - A: bật/tắt Attenuation.
-- T: bật/tắt Auto Orbit Light.
-- R: reset scene.
-- M: đổi material preset.
-- [/]: giảm/tăng shadowStrength.
+- G: bật/tắt Global Illumination Approx.
 - I: bật/tắt AI-GI Lite.
-- K/L: giảm/tăng AI strength.
+- T: bật/tắt Auto Orbit Light.
+- M: đổi material preset.
+- R: reset scene.
+- Q/E: giảm/tăng shininess.
+- [/]: giảm/tăng shadowStrength.
+- K/L: giảm/tăng aiStrength.
+- Arrow keys: di chuyển light theo X/Y.
+- Z/X: di chuyển light theo Z.
+- W/S: di chuyển camera gần/xa.
 
-Title bar hiển thị trạng thái dạng:
+## 7. Scene
 
-```text
-Phong | Shininess: 32 | Lighting: Full | Shadow: ON(0.65) | AI-GI: ON(0.35) | Attenuation: ON | Orbit: OFF | Material: Plastic
-```
+- Room kiểu Cornell-box/studio lab với kích thước khoảng `12 x 10 x 6`.
+- Floor có grid procedural và khít với tường.
+- Left wall màu đỏ, khít với back wall.
+- Right wall màu xanh, khít với back wall.
+- Back wall màu xám tối.
+- Ceiling màu tối hơn, khép góc trên của phòng.
+- Cube bên trái.
+- Sphere bên phải.
+- Lamp cube màu vàng nhạt.
+- Shadow đổ lên floor.
 
-## 5. Nội dung demo
+Khi bật GI, vùng tối sáng hơn nhẹ và có color bleeding từ tường đỏ/xanh.
 
-- Floor lớn ở `y = -1.0`, nhận bóng đổ khi bật Shadow Mapping.
-- Cube bên trái, sphere bên phải, lamp cube biểu diễn vị trí point light.
-- Lamp cube màu vàng nhạt, di chuyển theo `lightPos` khi bật auto-orbit.
-- Phong dùng `reflectDir` và `dot(viewDir, reflectDir)`.
-- Blinn-Phong dùng `halfwayDir` và `dot(norm, halfwayDir)`.
-- Lighting modes:
-  - `1`: Ambient only.
-  - `2`: Diffuse only.
-  - `3`: Specular only.
-  - `4`: Full lighting.
-- Shadow Mapping:
-  - Render depth map từ góc nhìn nguồn sáng.
-  - Dùng `lightSpaceMatrix`.
-  - Có bias giảm shadow acne.
-  - Có PCF 5x5 để bóng mềm hơn.
-  - `shadowStrength` mặc định `0.65` để bóng không đen tuyệt đối.
-- Attenuation:
-  - `1.0 / (constant + linear * d + quadratic * d * d)`
-  - `constant = 1.0`
-  - `linear = 0.09`
-  - `quadratic = 0.032`
+## 8. Material Presets
 
-## 6. Material Presets
+- Plastic: metallic 0.0, roughness 0.45, shininess 32.
+- Rubber: metallic 0.0, roughness 0.85, shininess 8.
+- Metal-like: metallic 0.8, roughness 0.25, shininess 128.
+- Ceramic: metallic 0.0, roughness 0.30, shininess 64.
 
-Nhấn `M` để chuyển preset:
+Nhấn `M` hoặc nút `NEXT MATERIAL` trên UI để đổi preset.
 
-- Plastic: shininess 32, màu cam/teal, specular vừa.
-- Rubber: shininess 8, màu tối hơn, specular yếu.
-- Metal-like: shininess 128, màu xám/bạc, specular mạnh.
-- Ceramic: shininess 64, màu sáng, specular vừa.
+## 9. AI-GI Lite
 
-Các preset không phải PBR đầy đủ; chúng dùng uniform màu, shininess, ambientStrength và specularStrength để demo ảnh hưởng vật liệu trong mô hình Phong/Blinn-Phong.
+AI-GI Lite là một Neural Indirect Lighting Approximation nhỏ:
 
-## 7. AI-assisted Lighting / AI-GI Lite
+1. Generate synthetic dataset.
+2. Train MLP bằng PyTorch.
+3. Export weights sang GLSL.
+4. Shader cộng `neuralGI(...)` vào ánh sáng gián tiếp.
 
-Project có thêm module AI nhỏ để ước lượng ánh sáng gián tiếp. AI-GI không thay thế Phong/Blinn-Phong và không thay thế Shadow Mapping; nó chỉ cộng thêm một lượng indirect light nhẹ để vùng tối/shadow có cảm giác bounce light.
-
-Pipeline AI:
-
-1. `python ai/generate_dataset.py`: sinh dataset tổng hợp.
-2. `python ai/train_neural_gi.py`: train MLP nhỏ bằng PyTorch.
-3. `python ai/export_glsl_weights.py`: export weights sang `shaders/neural_gi.glsl`.
-4. Build và chạy lại C++.
-
-Python dependencies:
+Python optional:
 
 ```bash
 pip install numpy torch
+python ai/generate_dataset.py
+python ai/train_neural_gi.py
+python ai/export_glsl_weights.py
 ```
 
-Nếu không train lại AI, project vẫn chạy với hàm `neuralGI(...)` tích hợp sẵn trong `phong.frag`. Runtime OpenGL không cần PyTorch.
+Runtime C++ không cần Python. Xem thêm `ai/README_AI.md`.
 
-Controls AI:
+## 10. Gợi ý ảnh báo cáo
 
-- `I`: bật/tắt AI-GI Lite.
-- `K/L`: giảm/tăng `aiStrength`.
-
-Xem thêm: `ai/README_AI.md`.
-
-## 8. Gợi ý chụp ảnh báo cáo
-
-- Full scene với cube + sphere + floor + shadow.
-- Ambient only.
-- Diffuse only.
-- Specular only.
-- Full Phong.
-- Full Blinn-Phong.
-- Shininess thấp.
-- Shininess cao.
+- Phong + Shadow.
+- Blinn-Phong + Shadow.
+- PBR roughness thấp.
+- PBR roughness cao.
+- GI OFF.
+- GI ON.
+- AI-GI OFF.
+- AI-GI ON.
 - Shadow OFF.
 - Shadow ON.
-- Attenuation OFF.
-- Attenuation ON.
-- Material Plastic.
-- Material Rubber.
-- Material Metal-like.
-- Material Ceramic.
-- Traditional: Shadow Mapping, AI-GI OFF.
-- AI-assisted: Shadow Mapping, AI-GI ON.
-- AI strength thấp.
-- AI strength cao.
+- UI panel tổng thể.
+- Material Plastic/Rubber/Metal-like/Ceramic.
 
-## 9. Lỗi OpenGL/shadow thường gặp
+## 11. Ghi chú kỹ thuật
 
-- Shader không load: chạy executable từ project root hoặc kiểm tra thư mục `build/shaders/` đã được copy sau build.
-- Bóng bị răng cưa: tăng kích thước shadow map hoặc tăng vùng PCF, đổi lại sẽ tốn hiệu năng hơn.
-- Shadow acne: tăng bias trong `ShadowCalculation`.
-- Peter-panning, bóng tách khỏi vật thể: giảm bias.
-- Không thấy lamp cube: tắt orbit bằng `T`, reset bằng `R`, hoặc di chuyển light bằng arrow/Z/X.
-- AI-GI quá sáng: giảm bằng `K` hoặc tắt bằng `I`.
+- PBR thật trong project: Cook-Torrance BRDF trực tiếp trong `phong.frag`.
+- GI approximation: công thức heuristic trong shader, không phải path tracing/radiosity.
+- AI-GI Lite: approximation giáo dục, train offline bằng Python và dùng GLSL ở runtime.
+- Nếu shadow bị acne, chỉnh bias trong `ShadowCalculation`.
+- Nếu PBR quá sáng/tối, chỉnh `Light Intensity`, `Roughness`, `Metallic`, `AO`.
