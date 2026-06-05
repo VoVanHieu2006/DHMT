@@ -6,7 +6,9 @@
 
 #include "Shader.h"
 
+#include <array>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -17,18 +19,40 @@ const unsigned int SCR_HEIGHT = 720;
 const unsigned int SHADOW_WIDTH = 2048;
 const unsigned int SHADOW_HEIGHT = 2048;
 
-const glm::vec3 DEFAULT_LIGHT_POS(1.2f, 2.5f, 2.0f);
+const glm::vec3 DEFAULT_LIGHT_POS(1.5f, 3.0f, 2.0f);
 const glm::vec3 DEFAULT_CAMERA_POS(0.0f, 1.0f, 6.0f);
+
+struct MaterialPreset {
+    std::string name;
+    glm::vec3 cubeColor;
+    glm::vec3 sphereColor;
+    glm::vec3 floorColor;
+    float shininess;
+    float specularStrength;
+    float ambientStrength;
+    float materialFactor;
+};
+
+const std::array<MaterialPreset, 4> MATERIAL_PRESETS = {{
+    {"Plastic", glm::vec3(1.0f, 0.42f, 0.22f), glm::vec3(0.0f, 0.72f, 0.68f), glm::vec3(0.55f, 0.55f, 0.58f), 32.0f, 0.50f, 0.12f, 0.45f},
+    {"Rubber", glm::vec3(0.42f, 0.16f, 0.10f), glm::vec3(0.02f, 0.28f, 0.26f), glm::vec3(0.28f, 0.28f, 0.30f), 8.0f, 0.18f, 0.14f, 0.20f},
+    {"Metal-like", glm::vec3(0.70f, 0.66f, 0.58f), glm::vec3(0.55f, 0.62f, 0.66f), glm::vec3(0.48f, 0.48f, 0.50f), 128.0f, 0.90f, 0.08f, 0.85f},
+    {"Ceramic", glm::vec3(0.92f, 0.74f, 0.58f), glm::vec3(0.72f, 0.92f, 0.88f), glm::vec3(0.68f, 0.68f, 0.70f), 64.0f, 0.55f, 0.13f, 0.65f}
+}};
 
 glm::vec3 lightPos = DEFAULT_LIGHT_POS;
 glm::vec3 cameraPos = DEFAULT_CAMERA_POS;
 
 float shininess = 32.0f;
+float shadowStrength = 0.65f;
 bool useBlinn = false;
 int lightingMode = 4;
 bool enableShadow = true;
 bool enableAttenuation = true;
 bool autoOrbitLight = false;
+bool enableAIGI = false;
+float aiStrength = 0.35f;
+std::size_t currentMaterialIndex = 0;
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -45,6 +69,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 bool isPressedOnce(GLFWwindow* window, int key);
 void resetScene();
+void applyMaterialPreset(std::size_t index);
 void printControls();
 void drawScene(const Shader& shader, bool depthOnly);
 void generateSphere(float radius,
@@ -286,7 +311,13 @@ int main() {
         lightingShader.setVec3("lightPos", lightPos);
         lightingShader.setVec3("viewPos", cameraPos);
         lightingShader.setFloat("shininess", shininess);
+        lightingShader.setFloat("shadowStrength", shadowStrength);
+        lightingShader.setFloat("specularStrength", MATERIAL_PRESETS[currentMaterialIndex].specularStrength);
+        lightingShader.setFloat("ambientStrength", MATERIAL_PRESETS[currentMaterialIndex].ambientStrength);
+        lightingShader.setFloat("aiStrength", aiStrength);
+        lightingShader.setFloat("materialFactor", MATERIAL_PRESETS[currentMaterialIndex].materialFactor);
         lightingShader.setBool("useBlinn", useBlinn);
+        lightingShader.setBool("enableAIGI", enableAIGI);
         lightingShader.setInt("lightingMode", lightingMode);
         lightingShader.setBool("enableShadow", enableShadow);
         lightingShader.setBool("enableAttenuation", enableAttenuation);
@@ -298,13 +329,13 @@ int main() {
         drawScene(lightingShader, false);
 
         lampShader.use();
-        lampShader.setVec3("lightColor", glm::vec3(1.0f));
+        lampShader.setVec3("lightColor", glm::vec3(1.0f, 0.92f, 0.60f));
         lampShader.setMat4("projection", projection);
         lampShader.setMat4("view", view);
 
         glm::mat4 lampModel = glm::mat4(1.0f);
         lampModel = glm::translate(lampModel, lightPos);
-        lampModel = glm::scale(lampModel, glm::vec3(0.2f));
+        lampModel = glm::scale(lampModel, glm::vec3(0.22f));
         lampShader.setMat4("model", lampModel);
 
         glBindVertexArray(lightVAO);
@@ -367,6 +398,19 @@ void processInput(GLFWwindow* window) {
         shininess = glm::min(256.0f, shininess + 40.0f * deltaTime);
     }
 
+    if (glfwGetKey(window, GLFW_KEY_LEFT_BRACKET) == GLFW_PRESS) {
+        shadowStrength = glm::max(0.0f, shadowStrength - 0.8f * deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_RIGHT_BRACKET) == GLFW_PRESS) {
+        shadowStrength = glm::min(1.0f, shadowStrength + 0.8f * deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS) {
+        aiStrength = glm::max(0.0f, aiStrength - 0.8f * deltaTime);
+    }
+    if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS) {
+        aiStrength = glm::min(1.0f, aiStrength + 0.8f * deltaTime);
+    }
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
         cameraPos.z = glm::max(2.0f, cameraPos.z - cameraSpeed);
     }
@@ -392,6 +436,12 @@ void processInput(GLFWwindow* window) {
     if (isPressedOnce(window, GLFW_KEY_R)) {
         resetScene();
     }
+    if (isPressedOnce(window, GLFW_KEY_M)) {
+        applyMaterialPreset((currentMaterialIndex + 1) % MATERIAL_PRESETS.size());
+    }
+    if (isPressedOnce(window, GLFW_KEY_I)) {
+        enableAIGI = !enableAIGI;
+    }
     if (isPressedOnce(window, GLFW_KEY_1)) {
         lightingMode = 1;
     }
@@ -416,12 +466,20 @@ bool isPressedOnce(GLFWwindow* window, int key) {
 void resetScene() {
     lightPos = DEFAULT_LIGHT_POS;
     cameraPos = DEFAULT_CAMERA_POS;
-    shininess = 32.0f;
+    applyMaterialPreset(0);
+    shadowStrength = 0.65f;
     useBlinn = false;
     lightingMode = 4;
     enableShadow = true;
     enableAttenuation = true;
     autoOrbitLight = false;
+    enableAIGI = false;
+    aiStrength = 0.35f;
+}
+
+void applyMaterialPreset(std::size_t index) {
+    currentMaterialIndex = index;
+    shininess = MATERIAL_PRESETS[currentMaterialIndex].shininess;
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
@@ -445,14 +503,18 @@ void printControls() {
               << "O: Toggle Shadow Mapping\n"
               << "A: Toggle attenuation\n"
               << "T: Toggle auto-orbit light\n"
-              << "R: Reset scene\n";
+              << "R: Reset scene\n"
+              << "M: Next material preset\n"
+              << "[ / ]: Decrease / increase shadow strength\n"
+              << "I: Toggle AI-GI Lite\n"
+              << "K / L: Decrease / increase AI-GI strength\n";
 }
 
 void drawScene(const Shader& shader, bool depthOnly) {
     glm::mat4 model = glm::mat4(1.0f);
     shader.setMat4("model", model);
     if (!depthOnly) {
-        shader.setVec3("objectColor", glm::vec3(0.55f, 0.55f, 0.58f));
+        shader.setVec3("objectColor", MATERIAL_PRESETS[currentMaterialIndex].floorColor);
     }
     glBindVertexArray(planeVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -462,7 +524,7 @@ void drawScene(const Shader& shader, bool depthOnly) {
     model = glm::rotate(model, glm::radians(-15.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     shader.setMat4("model", model);
     if (!depthOnly) {
-        shader.setVec3("objectColor", glm::vec3(1.0f, 0.42f, 0.22f));
+        shader.setVec3("objectColor", MATERIAL_PRESETS[currentMaterialIndex].cubeColor);
     }
     glBindVertexArray(cubeVAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -471,7 +533,7 @@ void drawScene(const Shader& shader, bool depthOnly) {
     model = glm::translate(model, glm::vec3(1.35f, -0.35f, 0.2f));
     shader.setMat4("model", model);
     if (!depthOnly) {
-        shader.setVec3("objectColor", glm::vec3(0.0f, 0.72f, 0.68f));
+        shader.setVec3("objectColor", MATERIAL_PRESETS[currentMaterialIndex].sphereColor);
     }
     glBindVertexArray(sphereVAO);
     glDrawElements(GL_TRIANGLES, sphereIndexCount, GL_UNSIGNED_INT, nullptr);
@@ -542,7 +604,11 @@ void updateWindowTitle(GLFWwindow* window) {
           << " | Shininess: " << static_cast<int>(shininess)
           << " | Lighting: " << lightingModeName()
           << " | Shadow: " << (enableShadow ? "ON" : "OFF")
+          << "(" << std::fixed << std::setprecision(2) << shadowStrength << ")"
+          << " | AI-GI: " << (enableAIGI ? "ON" : "OFF")
+          << "(" << aiStrength << ")"
           << " | Attenuation: " << (enableAttenuation ? "ON" : "OFF")
-          << " | Orbit: " << (autoOrbitLight ? "ON" : "OFF");
+          << " | Orbit: " << (autoOrbitLight ? "ON" : "OFF")
+          << " | Material: " << MATERIAL_PRESETS[currentMaterialIndex].name;
     glfwSetWindowTitle(window, title.str().c_str());
 }
